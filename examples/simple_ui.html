@@ -5,6 +5,7 @@
         <link rel="stylesheet" type="text/css" href="../dist/pivot.css">
         <script type="text/javascript" src="ext/jquery-1.8.3.min.js"></script>
         <script type="text/javascript" src="ext/jquery-ui-1.9.2.custom.min.js"></script>
+        <script type="text/javascript" src="../dist/base64.js"></script>
         <script type="text/javascript" src="../dist/pivot.js"></script>
     </head>
     <style>
@@ -20,7 +21,9 @@
         ], 
         { 
             rows: ["color"], 
-            cols: ["shape"] 
+            cols: ["shape"],
+            exportCSV: true,
+            exportXLS:true
         }
     );
              });

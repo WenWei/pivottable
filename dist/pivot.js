@@ -862,7 +862,7 @@
    */
 
   $.fn.pivotUI = function(input, inputOpts, overwrite, locale) {
-    var a, aggregator, attrLength, axisValues, c, colList, defaults, e, existingOpts, i, initialRender, k, opts, pivotTable, refresh, refreshDelayed, renderer, rendererControl, shownAttributes, tblCols, tr1, tr2, uiTable, unusedAttrsVerticalAutoOverride, x, _fn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4;
+    var a, aggregator, attrLength, axisValues, c, colList, defaults, e, existingOpts, exportTableToCSV, exportTableToExcel, i, initialRender, k, normalizeTable, opts, pivotTable, refresh, refreshDelayed, renderer, rendererControl, shownAttributes, tblCols, tr1, tr2, uiTable, unusedAttrsVerticalAutoOverride, x, _fn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4;
     if (overwrite == null) {
       overwrite = false;
     }
@@ -888,7 +888,8 @@
       filter: function() {
         return true;
       },
-      localeStrings: locales[locale].localeStrings
+      localeStrings: locales[locale].localeStrings,
+      exportCSV: null
     };
     existingOpts = this.data("pivotUIOptions");
     if ((existingOpts == null) || overwrite) {
@@ -940,6 +941,134 @@
         return _results;
       });
       uiTable = $("<table cellpadding='5'>");
+      normalizeTable = function($table) {
+        var headerPattern, headers, removeCount, separator;
+        $table.find('th[colspan], td[colspan]').each(function() {
+          var cell, count, _results;
+          cell = $(this);
+          count = parseInt(cell.attr('colspan')) - 1;
+          cell.removeAttr('colspan');
+          _results = [];
+          while (count > 0) {
+            cell.after(cell.clone());
+            cell = cell;
+            _results.push(count--);
+          }
+          return _results;
+        });
+        $table.find('th[rowspan], td[rowspan]').each(function() {
+          var cell, count, index, row, _results;
+          cell = $(this);
+          row = cell.parent();
+          index = cell.get(0).cellIndex;
+          count = parseInt(cell.attr('rowspan')) - 1;
+          cell.removeAttr('rowspan');
+          _results = [];
+          while (count > 0) {
+            row = row.next();
+            row.find("td:nth-child(" + (index + 1) + "), th:nth-child(" + (index + 1) + ")").before(cell.clone());
+            _results.push(count--);
+          }
+          return _results;
+        });
+        headers = [];
+        separator = " - ";
+        removeCount = 0;
+        headerPattern = null;
+        return $table.find('tr').each(function(i) {
+          var cell, headerKey, text;
+          cell = $(this).find('td:nth-child(1), th:nth-child(1)');
+          text = cell.text().trim();
+          if (i === 0) {
+            headerKey = text;
+            headerPattern = new RegExp("^" + headerKey + "$", 'i');
+            $(this).children().each(function() {
+              return headers.push([$(this).text().trim()]);
+            });
+          } else {
+            if (text.match(headerPattern)) {
+              $(this).children().each(function(i) {
+                var header;
+                header = headers[i];
+                text = $(this).text().trim();
+                if (header.indexOf(text) === -1) {
+                  return header.push(text);
+                }
+              });
+              $(this).remove();
+            } else {
+              return false;
+            }
+          }
+          return $table.find('tr:first').children().each(function(i) {
+            return $(this).text(headers[i].join(separator));
+          });
+        });
+      };
+      exportTableToCSV = function($table, filename) {
+        var $rows, colDelim, csv, csvData, exportTable, rowDelim, tmpColDelim, tmpRowDelim;
+        exportTable = $table.clone();
+        normalizeTable(exportTable);
+        $rows = exportTable.find("tr:has(td),tr:has(th)");
+        tmpColDelim = String.fromCharCode(11);
+        tmpRowDelim = String.fromCharCode(0);
+        colDelim = "\",\"";
+        rowDelim = "\"\r\n\"";
+        csv = "\"" + $rows.map(function(i, row) {
+          var $cols, $row;
+          $row = $(row);
+          $cols = $row.find("td,th");
+          return $cols.map(function(j, col) {
+            var $col, text;
+            $col = $(col);
+            text = $col.text();
+            return text.replace("\"", "\"\"");
+          }).get().join(tmpColDelim);
+        }).get().join(tmpRowDelim).split(tmpRowDelim).join(rowDelim).split(tmpColDelim).join(colDelim) + "\"";
+        csvData = "data:application/csv;charset=utf-8," + encodeURIComponent(csv);
+        $(this).attr({
+          download: filename,
+          href: csvData,
+          target: "_blank"
+        });
+      };
+      exportTableToExcel = function($table, filename) {
+        var btoa, ctx, exportTable, format, template, toBase64, uri, xlsData, _ref1;
+        exportTable = $table.clone();
+        btoa = window.btoa || window.base64.encode;
+        uri = 'data:application/vnd.ms-excel;base64,';
+        template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>';
+        toBase64 = function(s) {
+          return btoa(unescape(encodeURIComponent(s)));
+        };
+        format = function(s, c) {
+          return s.replace(/{(\w+)}/g, function(m, p) {
+            return c[p];
+          });
+        };
+        if ((exportTable != null) && ((_ref1 = exportTable[0]) != null ? _ref1.tagName : void 0) === 'TABLE') {
+          ctx = {
+            worksheet: 'WorkSheet',
+            table: exportTable.html()
+          };
+          xlsData = uri + toBase64(format(template, ctx));
+          $(this).attr({
+            download: filename,
+            href: xlsData,
+            target: "_blank"
+          });
+        }
+      };
+      if (opts.exportCSV === true) {
+        $("<p>").appendTo(uiTable).append($("<a href='#' target='_blank'>Export to CSV</a>").on("click", function(event) {
+          exportTableToCSV.apply(this, [$(".pvtTable"), "export.csv"]);
+        }));
+      }
+      if (opts.exportXLS === true) {
+        $("<p>").appendTo(uiTable).append($("<a href='#' target='_blank'>Export to EXCEL</a>").on("click", function(event) {
+          exportTableToExcel.apply(this, [$(".pvtTable"), "export.xls"]);
+        }));
+      }
       rendererControl = $("<td>");
       renderer = $("<select class='pvtRenderer'>").appendTo(rendererControl).bind("change", function() {
         return refresh();
