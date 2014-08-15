@@ -675,18 +675,33 @@ $.fn.pivotUI = (input, inputOpts, overwrite = false, locale="en") ->
                     ]
                     return
         #Add Export Excel Link
-        if opts.exportXLS == true
-            $("<p>").appendTo(uiTable)
-                .append $("<a href='#' target='_blank'>Export to EXCEL</a>").on "click", (event) ->
-                    # XLS
-                    exportTableToExcel.apply this, [
-                        $(".pvtTable")
-                        "export.xls"
-                    ]
-                    return
+#        if opts.exportXLS == true
+#             $("<p>").appendTo(uiTable)
+#                .append $("<a href='#' target='_blank'>Export to EXCEL</a>").on "click", (event) ->
+#                    # XLS
+#                    exportTableToExcel.apply this, [
+#                        $(".pvtTable")
+#                        "export.xls"
+#                    ]
+#                    return
 
         #renderer control
         rendererControl = $("<td>")
+
+        #render region for export button
+        rendererExportControl = $("<span id='pivotExportFn'></span>").appendTo(rendererControl)
+        $("<br/>").appendTo(rendererControl)
+
+        if opts.exportXLS == true
+            btn =  $("<a class='pull-right btn-export-to-excel' style='line-height:30px' href='#'>Export Excel<i class='icon-share'></i></button>").on 'click', (event) ->
+                # XLS
+                exportTableToExcel.apply this, [
+                    $(".pvtTable")
+                    "export.xls"
+                ]
+                return
+
+            rendererExportControl.append(btn)
 
         renderer = $("<select class='pvtRenderer'>")
             .appendTo(rendererControl)

@@ -862,7 +862,7 @@
    */
 
   $.fn.pivotUI = function(input, inputOpts, overwrite, locale) {
-    var a, aggregator, attrLength, axisValues, c, colList, defaults, e, existingOpts, exportTableToCSV, exportTableToExcel, i, initialRender, k, normalizeTable, opts, pivotTable, refresh, refreshDelayed, renderer, rendererControl, shownAttributes, tblCols, tr1, tr2, uiTable, unusedAttrsVerticalAutoOverride, x, _fn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4;
+    var a, aggregator, attrLength, axisValues, btn, c, colList, defaults, e, existingOpts, exportTableToCSV, exportTableToExcel, i, initialRender, k, normalizeTable, opts, pivotTable, refresh, refreshDelayed, renderer, rendererControl, rendererExportControl, shownAttributes, tblCols, tr1, tr2, uiTable, unusedAttrsVerticalAutoOverride, x, _fn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4;
     if (overwrite == null) {
       overwrite = false;
     }
@@ -1064,12 +1064,15 @@
           exportTableToCSV.apply(this, [$(".pvtTable"), "export.csv"]);
         }));
       }
-      if (opts.exportXLS === true) {
-        $("<p>").appendTo(uiTable).append($("<a href='#' target='_blank'>Export to EXCEL</a>").on("click", function(event) {
-          exportTableToExcel.apply(this, [$(".pvtTable"), "export.xls"]);
-        }));
-      }
       rendererControl = $("<td>");
+      rendererExportControl = $("<span id='pivotExportFn'></span>").appendTo(rendererControl);
+      $("<br/>").appendTo(rendererControl);
+      if (opts.exportXLS === true) {
+        btn = $("<a class='pull-right btn-export-to-excel' style='line-height:30px' href='#'>Export Excel<i class='icon-share'></i></button>").on('click', function(event) {
+          exportTableToExcel.apply(this, [$(".pvtTable"), "export.xls"]);
+        });
+        rendererExportControl.append(btn);
+      }
       renderer = $("<select class='pvtRenderer'>").appendTo(rendererControl).bind("change", function() {
         return refresh();
       });
